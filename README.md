@@ -24,7 +24,20 @@ as services in the DIC. This command will print the YAML or XML definitions of t
 For each entity/document a repository is printed with "{bundle}.repository.{entity}". If this service already skipped
 the printing is skipped.
 
-## Autowiring Controller Resolver
+## Controller Utils
+
+The service `simple_things.distribution.controller_utils` implements all the methods that the Base Controller of the Framework Bundle has with
+the following exceptions:
+
+    * No access to the container possible through `has()` and `get()`
+    * Added method `getRestView()` to access the fos_rest.view service if defined.
+    * Added methods `isPut()`, `isPost()`, `isDelete()` and `isXmlHttpRequest()`.
+    * Added methods `getUser()` and `isGranted($attributes, $object = null)` that checks for permissions
+    * Added methods for throwing more http related exceptions
+    * Added method `getSession()`
+    * Added method `getLogger()`
+
+## Autowiring Controllers
 
 The default controller in Symfony 2 is annoying, because it "only" injects the container and doesn't offer any auto-completion.
 We want controllers that are explicit about their dependencies, but we don't want to define controllers as services
@@ -87,16 +100,3 @@ Some questions that pop up on this are probably:
 
         No, we use a convenience service that ships all the necessary controller utilities/services, called `SimpleThings\DistributionBundle\Controller\ControllerUtils`.
         You can inject it with the `$controllerUtils` variable.
-
-## Controller Utils
-
-The service `simple_things.distribution.controller_utils` implements all the methods that the Base Controller of the Framework Bundle has with
-the following exceptions:
-
-    * No access to the container possible through `has()` and `get()`
-    * Added method `getRestView()` to access the fos_rest.view service if defined.
-    * Added methods `isPut()`, `isPost()`, `isDelete()` and `isXmlHttpRequest()`.
-    * Added methods `getUser()` and `isGranted($attributes, $object = null)` that checks for permissions
-    * Added methods for throwing more http related exceptions
-    * Added method `getSession()`
-    * Added method `getLogger()`
