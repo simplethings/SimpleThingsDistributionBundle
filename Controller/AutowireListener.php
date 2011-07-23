@@ -52,7 +52,7 @@ class AutowireListener
                 $injectParams = array();
                 foreach ($method->getParameters() AS $param) {
                     /* @var $param \ReflectionParameter */
-                    $name = preg_replace('([A-Z]{1})', '.\1', $param->getName());
+                    $name = preg_replace('([A-Z]{1})', '.\0', $param->getName());
                     if ($this->container->has($name)) {
                         $injectParams[] = $this->container->get($name);
                     } else if ($this->container->hasParameter($name)) {
