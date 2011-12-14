@@ -1,28 +1,10 @@
 # SimpleThings Distribution Bundle
 
-Helps you quickstart applications by bundling all the common assets that we use at SimpleThings aswell as useful commands and services.
+## Repository Service Detector
 
-This bundle ships with the following code:
-
-    * Blueprint v1.0.1 (http://www.blueprintcss.org/)
-    * FamFamFam Silk Icons (http://www.famfamfam.com/lab/icons/silk/)
-    * FamFamFam Sprite for Blueprint (http://www.ajaxbestiary.com/Labs/SilkSprite/)
-    * Chosen for jQuery (https://github.com/harvesthq/chosen/tree/master/chosen)
-    * qTip for jQuery 1.x (http://craigsworks.com/projects/qtip/)
-    * jQuery Notify Plugin (http://www.erichynds.com/jquery/a-jquery-ui-growl-ubuntu-notification-widget/)
-    * Aristo jQuery UI Theme (https://github.com/taitems/Aristo-jQuery-UI-Theme)
-
-Thanks to all the authors of these awesome UI libraries.
-
-You have to mash these assets together yourself using assetic or plain asset() command. Just use what you need.
-Additionally for the jQuery related stuff you need jQuery from Google CDN (http://code.google.com/apis/libraries/devguide.html#jquery)
-
-## Service Definition Generator
-
-Early in projects you are often doing repetitive service generation tasks, such as defining Doctrine repositories
-as services in the DIC. This command will print the YAML or XML definitions of these services based on an convention.
-For each entity/document a repository is printed with "{bundle}.repository.{entity}". If this service already skipped
-the printing is skipped.
+The bundle ships a dependency injection extension that automatically detects services
+for the repositories of Doctrine ORM entities. The convention for registration is
+'{bundle_alias}.repository.{entity}', everything in lowercase.
 
 ## Controller Utils
 
@@ -37,66 +19,40 @@ the following exceptions:
     * Added method `getSession()`
     * Added method `getLogger()`
 
-## Autowiring Controllers
+## Controller
 
-The default controller in Symfony 2 is annoying, because it "only" injects the container and doesn't offer any auto-completion.
-We want controllers that are explicit about their dependencies, but we don't want to define controllers as services
-(since the syntax is not so nice and requires changing the routing definitions). However we also do not use annotations
-in our projects, so this autowiring controller resolver works a bit different:
+By Symfony2 default controllers are not service and services are grabbed through a service-locator approach
+by directly accessing the Symfony DI Container. This is very convenient, but leads to hard to maintain code
+in the long run.
 
-During Controller instantation all `set*()` methods not ending with "Action" are searched and
-the variable names are checked against service names by replacing each upper-case character with "." + lower-case char. So
-"doctrine.orm.default_entity_manager" is injected into `$doctrineOrmDefault_entity_manager`. Comparison is done lower-case.
-Same works for container parameters. Service names are evaluated before parameters, there is no way to use "hidden" parameters.
-If neither service nor parameter is found an exception is thrown
+This bundle ships a SimpleThings\DistributionBundle\Controller\Controller that is automatically registered
+as a service based on the "{bundle_alias}.controller.{controller_name}" convention. This controller
+is automatically injected the Controller#utils variable as the controller utils service.
 
-This is only done to controllers with an `SimpleThings\DistributionBundle\Controller\AutowireController` marker interface.
+For simplicity there is also Controller#__call implemented that delegates to the utils service for
+as much API compability as possible to the default controller.
 
-Additionally there are some conventions:
+    use SimpleThings\DistributionBundle\Controller\Controller;
 
-    * `$entityManager` and `$em` get injected the default entity manager.
-    * `$controllerUtils` gets injected the `simple_things_distribution.controller_utils` service
-    * `$documentManager` and `$dm` gets injected the default CouchDB manager (We don't use mongoDb)
-    * `$connection` gets injected the default DBAL connection.
-    * `$view` gets injected the `fos_rest.view` service
-    * `$yRepository` gets injected the repository of the entity/document with the shortname $y. This can lead to clashes, which you have to resolve by setting service aliases manually. Otherwise the first wins.
+    /**
+     * Controller to access jira instances through a HTTP-JSON interface
+     *
+     * @Extra\Route(service="whitewashing.controller.jira")
+     */
+    class JiraController extends Controller
+    {
+        private $jiraFactory;
 
-This is controlled by automatically setting aliases to the services.
+        public function __construct($jiraFactory)
+        {
+            $this->jiraFactory = $jiraFactory;
+        }
 
-Other common services that don't need to be renamed because their service name is already that short in the container:
-
-    * `$router`
-    * `$serviceContainer`
-    * `$request`
-    * `$mailer`
-    * `$templating`
-    * `$formFactory`
-    * `$logger`
-    * `$session`
-    * `$securityContext`
-    * `$eventDispatcher`
-    * `$filesystem`
-    * `$translator`
-    * `$validator`
-    * `$doctrine`
-
-Some questions that pop up on this are probably:
-
-    * Why are the typehints not used?
-
-        Typehints may have different implementations, and the service container makes it complex to get to the service based on class name.
-        Also the decoupling of service names and class implementations is a really nice benefit and controller code would break if you change the impl.
-        of a service.
-
-    * Why is the constructor not checked?
-
-        This way we can hook a simple controller event listener and don't have to replace the controller resolving.
-
-    * Do i have to create that many setters?
-
-        No, a method `setServices($request, $router, $entityManager, $view)` for example gets injected all the services.
-
-    * Now do i have to inject all the framework/mvc utils all the time?
-
-        No, we use a convenience service that ships all the necessary controller utilities/services, called `SimpleThings\DistributionBundle\Controller\ControllerUtils`.
-        You can inject it with the `$controllerUtils` variable.
+        /**
+         * @Extra\Route("/jira/projects", name="ww_jira_projects")
+         * @Extra\Method("GET")
+         */
+        public function projectsAction(Request $request)
+        {
+        }
+    }
