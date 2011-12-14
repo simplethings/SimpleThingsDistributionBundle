@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 
 /**
- * Automatically register services named "bundle_alias".repository."entity." for
+ * Automatically register services named "bundle_alias".repository."entity" for
  * all Doctrine EntityMannager entities.
  */
 class RepositoryCompilerPass implements CompilerPassInterface
@@ -34,7 +34,10 @@ class RepositoryCompilerPass implements CompilerPassInterface
             if (strpos($service, "_entity_manager") !== false) {
                 $manager = $container->get($service);
                 if ($manager instanceof \Doctrine\ORM\EntityManager) {
-                    $entities = $container->get($service)->getConfiguration()->getMetadataDriverImpl()->getAllClassNames();
+                    $entities = $container->get($service)
+                                          ->getConfiguration()
+                                          ->getMetadataDriverImpl()
+                                          ->getAllClassNames();
 
                     foreach ($entities as $entity) {
                         $this->registerEntityRepository($service, $entity, $container);
@@ -49,12 +52,12 @@ class RepositoryCompilerPass implements CompilerPassInterface
      */
     private function registerEntityRepository($service, $entity, $container)
     {
-        $namespace = substr($entity, 0, strrpos($entity, '\\')-1);
+        $namespace = substr($entity, 0, strrpos($entity, '\\'));
         $shortname = substr($entity, strrpos($entity, '\\')+1);
         if (preg_match('(([a-zA-Z0-9\\\\]+Bundle))', $namespace, $match)) {
             $alias = Container::underscore(str_replace(array("\\", "Bundle"), "", $match[1]));
-
             $class = 'Doctrine\ORM\EntityRepository';
+
             $def = new Definition($class);
             $def->setFactoryService($service);
             $def->setFactoryMethod('getRepository');

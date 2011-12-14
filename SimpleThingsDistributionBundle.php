@@ -19,6 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use SimpleThings\DistributionBundle\DependencyInjection\AliasCompilerPass;
 use SimpleThings\DistributionBundle\DependencyInjection\RepositoryCompilerPass;
+use SimpleThings\DistributionBundle\DependencyInjection\ControllerServiceCompilerPass;
 
 class SimpleThingsDistributionBundle extends Bundle
 {
@@ -26,6 +27,7 @@ class SimpleThingsDistributionBundle extends Bundle
     {
         parent::build($container);
         $container->addCompilerPass(new AliasCompilerPass());
+        $container->addCompilerPass(new ControllerServiceCompilerPass());
         $container->addCompilerPass(new RepositoryCompilerPass(), PassConfig::TYPE_BEFORE_REMOVING);
     }
 }

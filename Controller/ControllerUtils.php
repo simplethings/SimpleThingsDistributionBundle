@@ -22,6 +22,12 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+/**
+ * Extracts all the logic out of the base Symfony controller into a service
+ * object.
+ *
+ * @author Benjamin Eberlei <kontakt@beberlei.de>
+ */
 class ControllerUtils
 {
     /**
@@ -118,7 +124,7 @@ class ControllerUtils
 
     /**
      * Create Access Denied (HTTP 403) exception
-     * 
+     *
      * @param string $message
      * @param \Exception $previous
      * @return AccessDeniedHttpException
@@ -130,7 +136,7 @@ class ControllerUtils
 
     /**
      * Create HTTP Exception
-     * 
+     *
      * @param string $message
      * @param int $statusCode
      * @param \Exception $previous
@@ -211,6 +217,9 @@ class ControllerUtils
     }
 
     /**
+     * This is an optional dependency. If you use it and FOSRest is not
+     * installed it will blow in your face.
+     *
      * @return FOS\RestBundle\View\ViewInterface
      */
     public function getRestView()
@@ -250,7 +259,7 @@ class ControllerUtils
                 return $user;
             }
         }
-        return null;
+        throw new \RuntimeException("No user is currently logged in.");
     }
 
     /**
