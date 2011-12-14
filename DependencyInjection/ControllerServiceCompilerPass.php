@@ -69,7 +69,7 @@ class ControllerServiceCompilerPass implements CompilerPassInterface
         if (preg_match('(([a-zA-Z0-9\\\\]+Bundle))', $className, $match)) {
             $alias = Container::underscore(str_replace(array("\\", "Bundle"), "", $match[1]));
 
-            $service = $alias . ".controller." . strtolower($controllerName);
+            $service = $alias . ".controller." . substr(strtolower($controllerName), 0,  -10);
             if ($container->hasDefinition($service)) {
                 $def = $container->getDefinition($service);
             } else {

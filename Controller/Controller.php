@@ -46,7 +46,7 @@ class Controller
      */
     public function __call($method, $args)
     {
-        return call_user_func_array(array($this, $method), $args);
+        return call_user_func_array(array($this->utils, $method), $args);
     }
 }
 
