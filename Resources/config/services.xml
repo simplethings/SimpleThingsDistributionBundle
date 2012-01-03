@@ -6,11 +6,16 @@
 
     <parameters>
         <parameter key="simple_things_distribution.controller_utils.class">SimpleThings\DistributionBundle\Controller\ControllerUtils</parameter>
+        <parameter key="simple_things_distribution.routing.loader.simplethings_crud.class">SimpleThings\DistributionBundle\Routing\Loader\CRUDFileLoader</parameter>
     </parameters>
 
     <services>
         <service id="simple_things_distribution.controller_utils" class="%simple_things_distribution.controller_utils.class%">
             <argument type="service" id="service_container" />
+        </service>
+        <service id="routing.loader.simplethings_crud" class="%simple_things_distribution.routing.loader.simplethings_crud.class%" public="false">
+            <tag name="routing.loader" />
+            <argument type="service" id="file_locator" />
         </service>
     </services>
 </container>

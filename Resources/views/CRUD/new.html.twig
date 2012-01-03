@@ -1,0 +1,12 @@
+{% extends "::layout.html.twig" %}
+
+{% block content %}
+<h1>{{ entity }} creation</h1>
+
+<form action="{{ "{{ path('"~ route_name_prefix ~"_create') }}" }}" method="post" {{ "{{ form_enctype(form) }}" }}>
+    {{ "{{ form_widget(form) }}" }}
+    <p>
+        <button type="submit">Create</button>
+    </p>
+</form>
+{% endblock %}

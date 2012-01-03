@@ -1,0 +1,14 @@
+{% extends "::layout.html.twig" %}
+
+{% block entity_name %}{% endblock %}
+
+{% block content %}
+<h1>{{ block('entity_name') }} edit</h1>
+
+<form action="{{ "{{ path('"~ route_name_prefix ~"_update', { 'id': entity.id }) }}" }}" method="post" {{ "{{ form_enctype(edit_form) }}" }}>
+    {{ "{{ form_widget(edit_form) }}" }}
+    <p>
+        <button type="submit">Edit</button>
+    </p>
+</form>
+{% endblock %}
