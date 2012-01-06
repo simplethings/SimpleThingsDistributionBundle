@@ -214,7 +214,7 @@ abstract class CRUDController extends Controller
     static public function getControllerName()
     {
         $class = get_called_class();
-        return strtolower(str_replace("\\", "Controller", substr($class, strrpos($class, "\\"))));
+        return strtolower(str_replace('Controller', '', substr($class, strrpos($class, '\\') + 1)));
     }
 }
 
