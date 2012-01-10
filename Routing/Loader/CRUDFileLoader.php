@@ -49,7 +49,7 @@ class CRUDFileLoader extends FileLoader
                     $route = new Route($basePattern.'/{id}/edit', array('_controller' => $class.'::updateAction'), array('_method' => 'POST'), array());
                     $collection->add($baseRouteName.'_update', $route);
 
-                    $route = new Route($basePattern.'/{id}/delete', array('_controller' => $class.'::deleteAction'), array('_method' => 'POST'), array());
+                    $route = new Route($basePattern.'/{id}/delete', array('_controller' => $class.'::deleteAction'), array('_method' => 'GET'), array());
                     $collection->add($baseRouteName.'_delete', $route);
 
                     $collection->addResource(new FileResource($file->getPathname()));

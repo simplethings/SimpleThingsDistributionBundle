@@ -23,6 +23,33 @@ abstract class CRUDController extends Controller
 {
 
     protected $entityClassName;
+    
+    protected $configs;
+    
+    public function __construct() {
+        
+        $defaults = array(
+            'name' => $this->getControllerName(),
+            'list' => array(
+                'fields' => '*',
+            ),
+            'new' => array(
+                'fields' => '*'
+            ),
+            'edit' => array(
+                'fields' => '*'
+            ),
+            'actions' => array(
+                'edit' => true,
+                'new' => true,
+                'delete' => true
+            ),
+            'types' => array(),
+            'labels' => array()
+        );
+        
+        $this->configs = array_merge($defaults, $this->getConfiguration());
+    }
 
     /**
      * @return Doctrine\Common\Persistence\ObjectManager
@@ -32,51 +59,50 @@ abstract class CRUDController extends Controller
         return $this->container->get('doctrine')->getEntityManager();
     }
 
-    protected function getCreateForm()
+    protected function getForm($fields)
     {
-        $config = $this->getConfiguration();
-        $fields = $config['new']['fields'];
         $builder = $this->createFormBuilder();
         
         if($fields == '*') {
             $em = $this->getManager();
             $cm = $em->getClassMetadata($this->entityClassName);
-            foreach ($cm->fieldMappings as $fieldName => $mapping) {
-                if (!in_array($fieldName, $cm->identifier)) {
-                    $builder->add($fieldName);
+            $fields = array();
+            foreach ($cm->fieldMappings as $field) {
+                if (!in_array($field['fieldName'], $cm->identifier)) {
+                    $fields[] = $field['fieldName'];
                 }
             }
-        } elseif(is_array($fields)) {
-            foreach($fields as $field => $type) {
-                $builder->add($fieldName, $type);
-            }
-        } else {
+        } elseif(!is_array($fields)) {
             throw new \Exception();
         }
         
-        return $builder->getForm();
-    }
+        foreach ($fields as $field) {
 
-    protected function getEditForm()
-    {
-        $config = $this->getConfiguration();
-        $fields = $config['edit']['fields'];
-        $builder = $this->createFormBuilder();
-        
-        if($fields == '*') {
-            $em = $this->getManager();
-            $cm = $em->getClassMetadata($this->entityClassName);
-            foreach ($cm->fieldMappings as $fieldName => $mapping) {
-                if (!in_array($fieldName, $cm->identifier)) {
-                    $builder->add($fieldName);
+            $required = true;
+
+            if(isset($this->configs['types']) 
+                && isset($this->configs['types'][$field])) {
+                
+                $type = $this->configs['types'][$field];
+                if($type == 'boolean') {
+                    $type = 'checkbox';
+                    $required = false;
                 }
+            } else {
+                $type = 'text';
             }
-        } elseif(is_array($fields)) {
-            foreach($fields as $field => $type) {
-                $builder->add($fieldName, $type);
-            }
-        } else {
-            throw new \Exception();
+
+            if(isset($this->configs['labels'][$field])) {
+                $label = $this->configs['labels'][$field];
+            } else {
+                $label == $field;
+            }                
+
+            $builder->add($field, $type, array(
+                'label' => $label,
+                'required' => $required
+            ));
+            
         }
         
         return $builder->getForm();
@@ -93,27 +119,16 @@ abstract class CRUDController extends Controller
         }
         return $fields;
     }
+    
+    protected function getIdentifier() {
+        $em = $this->getManager();
+        $cm = $em->getClassMetadata($this->entityClassName);
+        return $cm->identifier[0];      
+    }
 
     protected function getConfiguration()
     {
-
-        return array(
-            'list' => array(
-                'fields' => '*',
-            ),
-            'new' => array(
-                'fields' => '*'
-            ),
-            'edit' => array(
-                'fields' => '*'
-            ),
-            'actions' => array(
-                'edit' => true,
-                'new' => true,
-                'delete' => true
-            )
-        );
-        
+        return array();   
     }
 
     /**
@@ -121,19 +136,22 @@ abstract class CRUDController extends Controller
      */
     public function createAction()
     {
+        if(isset($this->configs['actions']) 
+            && isset($this->configs['actions']['new'])
+            && $this->configs['actions']['new'] == false) {
+            
+            return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
+        }        
+        
         $class = $this->entityClassName;
         $entity = new $class();
         $request = $this->getRequest();
 
-        $form = $this->getCreateForm();
+        $form = $this->getForm($this->configs['new']['fields']);
         $form->setData($entity);
         $form->bindRequest($request);
 
         if ($form->isValid()) {
-
-            // TODO: remove!
-            $entity->SDEACODEID = rand(1, 10000);
-
             $em = $this->getManager();
             $em->persist($entity);
             $em->flush();
@@ -143,12 +161,13 @@ abstract class CRUDController extends Controller
 
         return $this->filterResponse(
             array(
+                'name' => $this->configs['name'],
                 'entity' => $entity,
                 'form' => $form->createView(),
                 'route_name_prefix' => $this->getRouteNamePrefix()
             ), 
             array(
-            'action' => 'create'
+                'action' => 'create'
             )
         );
     }
@@ -158,32 +177,24 @@ abstract class CRUDController extends Controller
      */
     public function deleteAction($id)
     {
-        $form = $this->createDeleteForm($id);
-        $request = $this->getRequest();
+        if(isset($this->configs['actions']) 
+            && isset($this->configs['actions']['delete'])
+            && $this->configs['actions']['delete'] == false) {
+            
+            return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
+        }        
+        
+        $em = $this->getManager();
+        $entity = $em->getRepository($this->entityClassName)->find($id);
 
-        $form->bindRequest($request);
-
-        if ($form->isValid()) {
-            $em = $this->getManager();
-            $entity = $em->getRepository($this->entityClassName)->find($id);
-
-            if (!$entity) {
-                throw $this->createNotFoundException('Unable to find ' . $this->entityClassName . ' entity.');
-            }
-
-            $em->remove($entity);
-            $em->flush();
+        if (!$entity) {
+            throw $this->createNotFoundException('Unable to find ' . $this->entityClassName . ' entity.');
         }
 
-        return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
-    }
+        $em->remove($entity);
+        $em->flush();
 
-    private function createDeleteForm($id)
-    {
-        return $this->createFormBuilder(array('id' => $id))
-                ->add('id', 'hidden')
-                ->getForm()
-        ;
+        return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
     }
 
     /**
@@ -193,21 +204,36 @@ abstract class CRUDController extends Controller
      */
     public function editAction($id)
     {
+        if(isset($this->configs['actions']) 
+            && isset($this->configs['actions']['edit'])
+            && $this->configs['actions']['edit'] == false) {
+            
+            return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
+        }
+        
         $em = $this->getManager();
-
         $entity = $em->getRepository($this->entityClassName)->find($id);
 
         if (!$entity) {
             throw $this->createNotFoundException('Unable to find ' . $this->entityClassName . ' entity.');
         }
 
-        $editForm = $this->createForm($this->getEditFormType(), $entity);
+        $form = $this->getForm($this->configs['edit']['fields']);
+        $form->setData($entity);
+        
+        return $this->filterResponse(
+            array(
+                'name' => $this->configs['name'],
+                'entity' => $entity,
+                'form' => $form->createView(),
+                'identifier' => $this->getIdentifier(),
+                'route_name_prefix' => $this->getRouteNamePrefix()
+            ),
+            array(
+                'action' => 'edit'
+            )
+        );        
 
-        return array(
-            'entity' => $entity,
-            'form' => $editForm->createView(),
-            'route_name_prefix' => $this->getRouteNamePrefix()
-        );
     }
 
     /**
@@ -220,13 +246,29 @@ abstract class CRUDController extends Controller
         $em = $this->getManager();
 
         $entities = $em->getRepository($this->entityClassName)->findAll();
+        
+        $config = $this->getConfiguration();
+        $fields = $this->configs['list']['fields'];
+        
+        if($fields == '*') {
+            $fields = $this->getFields();
+        }
 
-        return $this->filterResponse(array(
+        return $this->filterResponse(
+            array(
+                'name' => $this->configs['name'],
                 'entities' => $entities,
-                'fields' => $this->getFields()
-                ), array(
+                'fields' => $fields,
+                'actions' => $this->configs['actions'],
+                'labels' => $this->configs['labels'],
+                'types' => $this->configs['types'],
+                'identifier' => $this->getIdentifier(),
+                'route_name_prefix' => $this->getRouteNamePrefix()
+            ), 
+            array(
                 'action' => 'index'
-            ));
+            )
+        );
     }
 
     /**
@@ -236,18 +278,29 @@ abstract class CRUDController extends Controller
      */
     public function newAction()
     {
+        if(isset($this->configs['actions']) 
+            && isset($this->configs['actions']['new'])
+            && $this->configs['actions']['new'] == false) {
+            
+            return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
+        }        
+        
         $class = $this->entityClassName;
         $entity = new $class();
-        $form = $this->getCreateForm();
+        $form = $this->getForm($this->configs['new']['fields']);
         $form->setData($entity);
 
-        return $this->filterResponse(array(
+        return $this->filterResponse(
+            array(
+                'name' => $this->configs['name'],
                 'entity' => $entity,
                 'form' => $form->createView(),
                 'route_name_prefix' => $this->getRouteNamePrefix()
-                ), array(
+            ), 
+            array(
                 'action' => 'new'
-            ));
+            )
+        );
     }
 
     /*
@@ -258,32 +311,47 @@ abstract class CRUDController extends Controller
 
     public function updateAction($id)
     {
+        if(isset($this->configs['actions']) 
+            && isset($this->configs['actions']['edit'])
+            && $this->configs['actions']['edit'] == false) {
+            
+            return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
+        }        
+        
         $em = $this->getManager();
-
         $entity = $em->getRepository($this->entityClassName)->find($id);
 
         if (!$entity) {
             throw $this->createNotFoundException('Unable to find ' . $this->entityClassName . ' entity.');
         }
 
-        $editForm = $this->createForm($this->getEditFormType(), $entity);
+        $form = $this->getForm($this->configs['edit']['fields']);
+        $form->setData($entity);
 
         $request = $this->getRequest();
 
-        $editForm->bindRequest($request);
+        $form->bindRequest($request);
 
-        if ($editForm->isValid()) {
+        if ($form->isValid()) {
             $em->persist($entity);
             $em->flush();
 
             return $this->redirect($this->generateUrl($this->getRouteNamePrefix() . '_edit', array('id' => $id)));
         }
+        
+        return $this->filterResponse(
+            array(
+                'name' => $this->configs['name'],
+                'entity' => $entity,
+                'form' => $form->createView(),
+                'identifier' => $this->getIdentifier(),
+                'route_name_prefix' => $this->getRouteNamePrefix()
+            ), 
+            array(
+                'action' => 'update'
+            )
+        );        
 
-        return array(
-            'entity' => $entity,
-            'form' => $editForm->createView(),
-            'route_name_prefix' => $this->getRouteNamePrefix()
-        );
     }
 
     protected function getRouteNamePrefix()
