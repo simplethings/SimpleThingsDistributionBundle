@@ -6,7 +6,8 @@
                 {{ labels[field]|default(field) }}
             </th>
         {% endfor %}
-        {% if actions.edit|default(true) or actions.delete|default(true) %}
+        {% if not actions.edit is defined or actions.edit == true
+            or not actions.delete is defined or actions.delete == true %}
             <th>actions</th>
         {% endif %}
         </tr>
@@ -26,10 +27,10 @@
         {% endfor %}
         {% if actions.edit|default(true) or actions.delete|default(true) %}    
             <td>
-                {% if actions.edit|default(true) %}
+                {% if not actions.edit is defined or actions.edit == true %}
                 <a class="btn" href="{{ path(route_name_prefix ~ '_edit', {'id':get_attribute_value(entity, identifier) }) }}">edit</a>
                 {% endif %}
-                {% if actions.delete|default(true) %}
+                {% if not actions.delete is defined or actions.delete == true %}
                 <a class="btn" href="{{ path(route_name_prefix ~ '_delete', {'id':get_attribute_value(entity, identifier) }) }}">delete</a>
                 {% endif %}
             </td>
@@ -38,6 +39,6 @@
     {% endfor %}
     </tbody>
 </table>
-{% if actions.new|default(true) %}
+{% if not actions.new is defined or actions.new == true %}
     <a href="{{ path(route_name_prefix ~ '_new') }}">new</a>
 {% endif %}
