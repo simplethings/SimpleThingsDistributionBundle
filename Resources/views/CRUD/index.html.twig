@@ -1,60 +1,43 @@
-{% extends "::layout.html.twig" %}
-
-{% block content %}
-<h1>{{ entity }} list</h1>
-
-<table class="records_list">
+<table>
     <thead>
         <tr>
-        {%- for field, metadata in fields %}
-
-            <th>{{ field|capitalize }}</th>
-
-        {%- endfor %}
-
-            <th>Actions</th>
+        {% for field in fields %}
+            <th>
+                {{ labels[field]|default(field) }}
+            </th>
+        {% endfor %}
+        {% if actions.edit|default(true) or actions.delete|default(true) %}
+            <th>actions</th>
+        {% endif %}
         </tr>
     </thead>
     <tbody>
-    {{ '{% for entity in entities %}' }}
+    {% for entity in entities %}
         <tr>
-
-    {%- for field, metadata in fields %}
-        {%- if loop.first and ('show' in actions) %}
-
-            <td><a href="{{ "{{ path('"~ route_name_prefix ~"_show', { 'id': entity.id }) }}" }}">{{ '{{ entity.'~ field|replace({'_': ''}) ~' }}' }}</a></td>
-
-        {%- elseif metadata.type in ['date', 'datetime'] %}
-
-            <td>{{ '{% if entity.'~ field|replace({'_': ''}) ~' %}{{ entity.'~ field|replace({'_': ''}) ~'|date(\'Y-m-d H:i:s\') }}{% endif%}' }}</td>
-
-        {%- else %}
-
-            <td>{{ '{{ entity.'~ field|replace({'_': ''}) ~' }}' }}</td>
-
-        {%- endif %}
-
-        {%- if loop.last %}
-
+        {% for field in fields %}
             <td>
-                {%- include "views/others/actions.html.twig" %}
+                {% set t = types[field]|default('string') %}
+                {% if t == "boolean" %}
+                    {% if get_attribute_value(entity, field) %}yes{% else %}no{% endif %}
+                {% else %}
+                    {{ get_attribute_value(entity, field) }}
+                {% endif %}
             </td>
-
-        {%- endif %}
-    {%- endfor %}
-
+        {% endfor %}
+        {% if actions.edit|default(true) or actions.delete|default(true) %}    
+            <td>
+                {% if actions.edit|default(true) %}
+                <a class="btn" href="{{ path(route_name_prefix ~ '_edit', {'id':get_attribute_value(entity, identifier) }) }}">edit</a>
+                {% endif %}
+                {% if actions.delete|default(true) %}
+                <a class="btn" href="{{ path(route_name_prefix ~ '_delete', {'id':get_attribute_value(entity, identifier) }) }}">delete</a>
+                {% endif %}
+            </td>
+        {% endif %}
         </tr>
-    {{ '{% endfor %}' }}
+    {% endfor %}
     </tbody>
 </table>
-
-{% if 'new' in actions %}
-<ul>
-    <li>
-        <a href="{{ "{{ path('"~ route_name_prefix ~"_new') }}" }}">
-            Create a new entry
-        </a>
-    </li>
-</ul>
+{% if actions.new|default(true) %}
+    <a href="{{ path(route_name_prefix ~ '_new') }}">new</a>
 {% endif %}
-{% endblock %}
