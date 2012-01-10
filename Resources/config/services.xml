@@ -17,5 +17,11 @@
             <tag name="routing.loader" />
             <argument type="service" id="file_locator" />
         </service>
+        
+        <!-- Twig Extensions -->
+        <service id="simple_things_distribution.twig.object_access" class="SimpleThings\DistributionBundle\Twig\ObjectAccessExtension">
+            <tag name="twig.extension" />
+        </service>         
     </services>
+    
 </container>

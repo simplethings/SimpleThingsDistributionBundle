@@ -37,10 +37,10 @@ class CRUDFileLoader extends FileLoader
                     $route = new Route($basePattern, array('_controller' => $class.'::indexAction'), array('_method' => 'GET'), array());
                     $collection->add($baseRouteName, $route);
 
-                    $route = new Route($basePattern.'/new.html', array('_controller' => $class.'::newAction'), array('_method' => 'GET'), array());
+                    $route = new Route($basePattern.'/new', array('_controller' => $class.'::newAction'), array('_method' => 'GET'), array());
                     $collection->add($baseRouteName.'_new', $route);
 
-                    $route = new Route($basePattern, array('_controller' => $class.'::newAction'), array('_method' => 'POST'), array());
+                    $route = new Route($basePattern, array('_controller' => $class.'::createAction'), array('_method' => 'POST'), array());
                     $collection->add($baseRouteName.'_create', $route);
 
                     $route = new Route($basePattern.'/{id}/edit', array('_controller' => $class.'::editAction'), array('_method' => 'GET'), array());
