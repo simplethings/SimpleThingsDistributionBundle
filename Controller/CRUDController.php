@@ -2,8 +2,8 @@
 
 namespace SimpleThings\DistributionBundle\Controller;
 
-use Sensio\Bundle\FrameworkExtraBundle\Configuration AS Extra;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration as Extra;
+use Symfony\Bundle\FrameworkBundle\Controller\Controller as BaseController;
 
 /**
  * Abstract CRUD Controller that simplifies creation of very simple entities
@@ -19,15 +19,26 @@ use Symfony\Bundle\FrameworkBundle\Controller\Controller;
  * - No paginator yet, but will be based on pagerfanta.
  * - Route prefix is generated based on pattern "{bundle_alias}_crud_{entityshortname}"
  */
-abstract class CRUDController extends Controller
+abstract class CRUDController extends BaseController
 {
-
+    /**
+     * Name of the Doctrine Entity class
+     * @todo Refactor into abstract method
+     *
+     * @var string
+     */
     protected $entityClassName;
-    
+
+    /**
+     * Configuration for forms and such
+     * @todo Refactor into abstract method
+     *
+     * @var array
+     */
     protected $configs;
-    
-    public function __construct() {
-        
+
+    public function __construct()
+    {
         $defaults = array(
             'name' => $this->getControllerName(),
             'list' => array(
@@ -47,7 +58,7 @@ abstract class CRUDController extends Controller
             'types' => array(),
             'labels' => array()
         );
-        
+
         $this->configs = array_merge($defaults, $this->getConfiguration());
     }
 
@@ -62,7 +73,7 @@ abstract class CRUDController extends Controller
     protected function getForm($fields)
     {
         $builder = $this->createFormBuilder();
-        
+
         if($fields == '*') {
             $em = $this->getManager();
             $cm = $em->getClassMetadata($this->entityClassName);
@@ -75,14 +86,14 @@ abstract class CRUDController extends Controller
         } elseif(!is_array($fields)) {
             throw new \Exception();
         }
-        
+
         foreach ($fields as $field) {
 
             $required = true;
 
             if(isset($this->configs['types']) 
                 && isset($this->configs['types'][$field])) {
-                
+
                 $type = $this->configs['types'][$field];
                 if($type == 'boolean') {
                     $type = 'checkbox';
@@ -96,15 +107,15 @@ abstract class CRUDController extends Controller
                 $label = $this->configs['labels'][$field];
             } else {
                 $label == $field;
-            }                
+            }
 
             $builder->add($field, $type, array(
                 'label' => $label,
                 'required' => $required
             ));
-            
+
         }
-        
+
         return $builder->getForm();
     }
 
@@ -119,16 +130,22 @@ abstract class CRUDController extends Controller
         }
         return $fields;
     }
-    
-    protected function getIdentifier() {
+
+    protected function getIdentifier()
+    {
         $em = $this->getManager();
         $cm = $em->getClassMetadata($this->entityClassName);
-        return $cm->identifier[0];      
+
+        if ($cm->isIdentifierComposite) {
+            throw new \RuntimeException("Entities with composite identifiers are not supported.");
+        }
+
+        return $cm->identifier[0];
     }
 
     protected function getConfiguration()
     {
-        return array();   
+        return array();
     }
 
     /**
@@ -136,13 +153,13 @@ abstract class CRUDController extends Controller
      */
     public function createAction()
     {
-        if(isset($this->configs['actions']) 
+        if(isset($this->configs['actions'])
             && isset($this->configs['actions']['new'])
             && $this->configs['actions']['new'] == false) {
-            
+
             return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
-        }        
-        
+        }
+
         $class = $this->entityClassName;
         $entity = new $class();
         $request = $this->getRequest();
@@ -165,7 +182,7 @@ abstract class CRUDController extends Controller
                 'entity' => $entity,
                 'form' => $form->createView(),
                 'route_name_prefix' => $this->getRouteNamePrefix()
-            ), 
+            ),
             array(
                 'action' => 'create'
             )
@@ -180,10 +197,10 @@ abstract class CRUDController extends Controller
         if(isset($this->configs['actions']) 
             && isset($this->configs['actions']['delete'])
             && $this->configs['actions']['delete'] == false) {
-            
+
             return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
-        }        
-        
+        }
+
         $em = $this->getManager();
         $entity = $em->getRepository($this->entityClassName)->find($id);
 
@@ -207,10 +224,10 @@ abstract class CRUDController extends Controller
         if(isset($this->configs['actions']) 
             && isset($this->configs['actions']['edit'])
             && $this->configs['actions']['edit'] == false) {
-            
+
             return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
         }
-        
+
         $em = $this->getManager();
         $entity = $em->getRepository($this->entityClassName)->find($id);
 
@@ -220,7 +237,7 @@ abstract class CRUDController extends Controller
 
         $form = $this->getForm($this->configs['edit']['fields']);
         $form->setData($entity);
-        
+
         return $this->filterResponse(
             array(
                 'name' => $this->configs['name'],
@@ -232,7 +249,7 @@ abstract class CRUDController extends Controller
             array(
                 'action' => 'edit'
             )
-        );        
+        );
 
     }
 
@@ -246,10 +263,10 @@ abstract class CRUDController extends Controller
         $em = $this->getManager();
 
         $entities = $em->getRepository($this->entityClassName)->findAll();
-        
+
         $config = $this->getConfiguration();
         $fields = $this->configs['list']['fields'];
-        
+
         if($fields == '*') {
             $fields = $this->getFields();
         }
@@ -264,7 +281,7 @@ abstract class CRUDController extends Controller
                 'types' => $this->configs['types'],
                 'identifier' => $this->getIdentifier(),
                 'route_name_prefix' => $this->getRouteNamePrefix()
-            ), 
+            ),
             array(
                 'action' => 'index'
             )
@@ -278,13 +295,13 @@ abstract class CRUDController extends Controller
      */
     public function newAction()
     {
-        if(isset($this->configs['actions']) 
+        if(isset($this->configs['actions'])
             && isset($this->configs['actions']['new'])
             && $this->configs['actions']['new'] == false) {
-            
+
             return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
-        }        
-        
+        }
+
         $class = $this->entityClassName;
         $entity = new $class();
         $form = $this->getForm($this->configs['new']['fields']);
@@ -296,7 +313,7 @@ abstract class CRUDController extends Controller
                 'entity' => $entity,
                 'form' => $form->createView(),
                 'route_name_prefix' => $this->getRouteNamePrefix()
-            ), 
+            ),
             array(
                 'action' => 'new'
             )
@@ -311,13 +328,13 @@ abstract class CRUDController extends Controller
 
     public function updateAction($id)
     {
-        if(isset($this->configs['actions']) 
+        if(isset($this->configs['actions'])
             && isset($this->configs['actions']['edit'])
             && $this->configs['actions']['edit'] == false) {
-            
+
             return $this->redirect($this->generateUrl($this->getRouteNamePrefix()));
-        }        
-        
+        }
+
         $em = $this->getManager();
         $entity = $em->getRepository($this->entityClassName)->find($id);
 
@@ -338,7 +355,7 @@ abstract class CRUDController extends Controller
 
             return $this->redirect($this->generateUrl($this->getRouteNamePrefix() . '_edit', array('id' => $id)));
         }
-        
+
         return $this->filterResponse(
             array(
                 'name' => $this->configs['name'],
@@ -346,11 +363,11 @@ abstract class CRUDController extends Controller
                 'form' => $form->createView(),
                 'identifier' => $this->getIdentifier(),
                 'route_name_prefix' => $this->getRouteNamePrefix()
-            ), 
+            ),
             array(
                 'action' => 'update'
             )
-        );        
+        );
 
     }
 
