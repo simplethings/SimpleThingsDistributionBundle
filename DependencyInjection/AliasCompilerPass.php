@@ -26,8 +26,8 @@ class AliasCompilerPass implements CompilerPassInterface
     {
         foreach ($container->getServiceIds() AS $service) {
             if (strpos($service, ".repository.") !== false && preg_match('(\.repository\.([a-z]+))', $service, $repositoryName)) {
-                if (!$container->hasAlias($repositoryName.'.repository')) {
-                    $container->setAlias($repositoryName.'.repository', $service);
+                if (!$container->hasAlias($repositoryName[1].'.repository')) {
+                    $container->setAlias($repositoryName[1].'.repository', $service);
                 }
             }
         }
